@@ -2,7 +2,8 @@ import argparse
 from asttools import FileParser
 
 parser = argparse.ArgumentParser('Static Parser - ')
-parser.add_argument('--filename', '--f', '-f', default="test-cases/test1.py")
+parser.add_argument('--filename', '--f', '-f',
+                    default="test-cases/test-bools.py")
 args = parser.parse_args()
 print(args)
 

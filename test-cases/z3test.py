@@ -2,12 +2,11 @@ from z3 import *
 
 a = Bool('a')
 b = Bool('b')
-c = Bool('c')
+c = Int('c')
 s = Solver()
 
-s.add(Or(And(a, Not(b)), c))
-
-s.add(And(a, b, Not(c)))
+s.add(And(a, Not(b)))
+s.add(a == True)
 
 satisfied = s.check()
 print(satisfied)

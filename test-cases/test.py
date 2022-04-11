@@ -9,11 +9,11 @@ def test_func(a: bool = True, b: bool = False) -> int:
         return 2
     if b and not a:
         return 3
-    else:
+    if a and not a:
         return 4
 
 
-def test_func3(a: bool = True, b: bool = True, c: bool = True) -> int:
+def test_func2(a: bool = True, b: bool = True, c: bool = True) -> int:
     if (a and not b) or c:
         return 1
 
