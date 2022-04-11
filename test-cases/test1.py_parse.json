@@ -1,0 +1,295 @@
+{
+    "_type": "Module",
+    "body": [
+        {
+            "_type": "FunctionDef",
+            "args": {
+                "_type": "arguments",
+                "args": [
+                    {
+                        "_type": "arg",
+                        "annotation": {
+                            "_type": "Name",
+                            "col_offset": 17,
+                            "ctx": {
+                                "_type": "Load"
+                            },
+                            "end_col_offset": 21,
+                            "end_lineno": 4,
+                            "id": "bool",
+                            "lineno": 4
+                        },
+                        "arg": "a",
+                        "col_offset": 14,
+                        "end_col_offset": 21,
+                        "end_lineno": 4,
+                        "lineno": 4,
+                        "type_comment": null
+                    },
+                    {
+                        "_type": "arg",
+                        "annotation": {
+                            "_type": "Name",
+                            "col_offset": 33,
+                            "ctx": {
+                                "_type": "Load"
+                            },
+                            "end_col_offset": 37,
+                            "end_lineno": 4,
+                            "id": "bool",
+                            "lineno": 4
+                        },
+                        "arg": "b",
+                        "col_offset": 30,
+                        "end_col_offset": 37,
+                        "end_lineno": 4,
+                        "lineno": 4,
+                        "type_comment": null
+                    }
+                ],
+                "defaults": [
+                    {
+                        "_type": "Constant",
+                        "col_offset": 24,
+                        "end_col_offset": 28,
+                        "end_lineno": 4,
+                        "kind": null,
+                        "lineno": 4,
+                        "n": true,
+                        "s": true,
+                        "value": true
+                    },
+                    {
+                        "_type": "Constant",
+                        "col_offset": 40,
+                        "end_col_offset": 45,
+                        "end_lineno": 4,
+                        "kind": null,
+                        "lineno": 4,
+                        "n": false,
+                        "s": false,
+                        "value": false
+                    }
+                ],
+                "kw_defaults": [],
+                "kwarg": null,
+                "kwonlyargs": [],
+                "posonlyargs": [],
+                "vararg": null
+            },
+            "body": [
+                {
+                    "_type": "If",
+                    "body": [
+                        {
+                            "_type": "Return",
+                            "col_offset": 8,
+                            "end_col_offset": 16,
+                            "end_lineno": 7,
+                            "lineno": 7,
+                            "value": {
+                                "_type": "Constant",
+                                "col_offset": 15,
+                                "end_col_offset": 16,
+                                "end_lineno": 7,
+                                "kind": null,
+                                "lineno": 7,
+                                "n": 1,
+                                "s": 1,
+                                "value": 1
+                            }
+                        }
+                    ],
+                    "col_offset": 4,
+                    "end_col_offset": 16,
+                    "end_lineno": 7,
+                    "lineno": 6,
+                    "orelse": [],
+                    "test": {
+                        "_type": "BoolOp",
+                        "col_offset": 7,
+                        "end_col_offset": 14,
+                        "end_lineno": 6,
+                        "lineno": 6,
+                        "op": {
+                            "_type": "And"
+                        },
+                        "values": [
+                            {
+                                "_type": "Name",
+                                "col_offset": 7,
+                                "ctx": {
+                                    "_type": "Load"
+                                },
+                                "end_col_offset": 8,
+                                "end_lineno": 6,
+                                "id": "a",
+                                "lineno": 6
+                            },
+                            {
+                                "_type": "Name",
+                                "col_offset": 13,
+                                "ctx": {
+                                    "_type": "Load"
+                                },
+                                "end_col_offset": 14,
+                                "end_lineno": 6,
+                                "id": "b",
+                                "lineno": 6
+                            }
+                        ]
+                    }
+                },
+                {
+                    "_type": "If",
+                    "body": [
+                        {
+                            "_type": "Return",
+                            "col_offset": 8,
+                            "end_col_offset": 16,
+                            "end_lineno": 10,
+                            "lineno": 10,
+                            "value": {
+                                "_type": "Constant",
+                                "col_offset": 15,
+                                "end_col_offset": 16,
+                                "end_lineno": 10,
+                                "kind": null,
+                                "lineno": 10,
+                                "n": 2,
+                                "s": 2,
+                                "value": 2
+                            }
+                        }
+                    ],
+                    "col_offset": 4,
+                    "end_col_offset": 16,
+                    "end_lineno": 10,
+                    "lineno": 9,
+                    "orelse": [],
+                    "test": {
+                        "_type": "Name",
+                        "col_offset": 7,
+                        "ctx": {
+                            "_type": "Load"
+                        },
+                        "end_col_offset": 8,
+                        "end_lineno": 9,
+                        "id": "a",
+                        "lineno": 9
+                    }
+                },
+                {
+                    "_type": "If",
+                    "body": [
+                        {
+                            "_type": "Return",
+                            "col_offset": 8,
+                            "end_col_offset": 16,
+                            "end_lineno": 13,
+                            "lineno": 13,
+                            "value": {
+                                "_type": "Constant",
+                                "col_offset": 15,
+                                "end_col_offset": 16,
+                                "end_lineno": 13,
+                                "kind": null,
+                                "lineno": 13,
+                                "n": 3,
+                                "s": 3,
+                                "value": 3
+                            }
+                        }
+                    ],
+                    "col_offset": 4,
+                    "end_col_offset": 16,
+                    "end_lineno": 15,
+                    "lineno": 12,
+                    "orelse": [
+                        {
+                            "_type": "Return",
+                            "col_offset": 8,
+                            "end_col_offset": 16,
+                            "end_lineno": 15,
+                            "lineno": 15,
+                            "value": {
+                                "_type": "Constant",
+                                "col_offset": 15,
+                                "end_col_offset": 16,
+                                "end_lineno": 15,
+                                "kind": null,
+                                "lineno": 15,
+                                "n": 4,
+                                "s": 4,
+                                "value": 4
+                            }
+                        }
+                    ],
+                    "test": {
+                        "_type": "BoolOp",
+                        "col_offset": 7,
+                        "end_col_offset": 18,
+                        "end_lineno": 12,
+                        "lineno": 12,
+                        "op": {
+                            "_type": "And"
+                        },
+                        "values": [
+                            {
+                                "_type": "Name",
+                                "col_offset": 7,
+                                "ctx": {
+                                    "_type": "Load"
+                                },
+                                "end_col_offset": 8,
+                                "end_lineno": 12,
+                                "id": "b",
+                                "lineno": 12
+                            },
+                            {
+                                "_type": "UnaryOp",
+                                "col_offset": 13,
+                                "end_col_offset": 18,
+                                "end_lineno": 12,
+                                "lineno": 12,
+                                "op": {
+                                    "_type": "Not"
+                                },
+                                "operand": {
+                                    "_type": "Name",
+                                    "col_offset": 17,
+                                    "ctx": {
+                                        "_type": "Load"
+                                    },
+                                    "end_col_offset": 18,
+                                    "end_lineno": 12,
+                                    "id": "a",
+                                    "lineno": 12
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "col_offset": 0,
+            "decorator_list": [],
+            "end_col_offset": 16,
+            "end_lineno": 15,
+            "lineno": 4,
+            "name": "test_func",
+            "returns": {
+                "_type": "Name",
+                "col_offset": 50,
+                "ctx": {
+                    "_type": "Load"
+                },
+                "end_col_offset": 53,
+                "end_lineno": 4,
+                "id": "int",
+                "lineno": 4
+            },
+            "type_comment": null
+        }
+    ],
+    "type_ignores": []
+}
