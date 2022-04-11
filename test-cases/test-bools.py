@@ -1,7 +1,7 @@
 # basic test file for branch detection/analysis
 
 
-def test_func(a: bool, b: bool) -> int:
+def test_func1(a: bool, b: bool) -> int:
 
     if a and b:
         return 1
@@ -37,7 +37,7 @@ def test_func4(a: bool, b: bool = True) -> int:
     return 2
 
 
-def test_func4(a: bool, b: bool = True) -> int:
+def test_func5(a: bool, b: bool = True) -> int:
     c: bool = True
     c = False
 

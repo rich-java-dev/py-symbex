@@ -136,7 +136,11 @@ class FunctionParser():
                 self.generate_test_expr(line['test'])
                 # After Z3 expression is parsed, call Solver
                 s = z3.Solver()
-                s.add(self.z3e)
+
+                if hasattr(self.z3e,  '__call__'):
+                    s.add(self.z3e())
+                else:
+                    s.add(self.z3e)
 
                 for k, expr in self.constraints.items():
                     s.add(expr())
@@ -193,7 +197,16 @@ class FunctionParser():
             z3_op = z3tools.get_z3_op_type(op_type)
             self.z3e = z3_op(self.build_z3e(test))
 
+        if test_type == 'Compare':
+            op_type = test['ops'][0]['_type']
+            op_value = test['comparators'][0]['value']
+            left_id = test['left']['id']
+            left_var = self.args[left_id]
+            z3_op = z3tools.get_z3_op_type(op_type)
+            self.z3e = lambda: z3_op(left_var, op_value)
+
     # recursive function to consume/traverse the AST
+
     def build_z3e(self, test: dict) -> list:
         sub_expr: list = []
         if 'values' in test:

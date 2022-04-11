@@ -5,6 +5,10 @@ py2z3_op_map: dict = {
     'Or': Or,
     'And': And,
     'Not': Not,
+    'Gt': ArithRef.__gt__,
+    'Lt': ArithRef.__lt__,
+    'LtE': ArithRef.__le__,
+    'GtE': ArithRef.__ge__,
 }
 
 py2z3_var_map: dict = {
