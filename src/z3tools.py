@@ -1,10 +1,11 @@
 from z3 import *
 
-
+# build out a mapping from 'AST' generated python phrases to Z3 ArithRef
 py2z3_op_map: dict = {
     'Or': Or,
     'And': And,
     'Not': Not,
+    'Eq': ArithRef.__eq__,
     'Gt': ArithRef.__gt__,
     'Lt': ArithRef.__lt__,
     'LtE': ArithRef.__le__,

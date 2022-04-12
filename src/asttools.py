@@ -124,34 +124,42 @@ class FunctionParser():
     def parse(self):
         # begin traversing function body
         for line in self.body:
+            self.parse_body_line(line)
 
-            if self.detect_var(line):
-                self.store_var(line)
+    def parse_body_line(self, line):
+        if self.detect_var(line):
+            self.store_var(line)
 
-            elif self.detect_var_change(line):
-                self.store_var_change(line)
+        elif self.detect_var_change(line):
+            self.store_var_change(line)
 
-            # detect branching (If statements)
-            elif self.detect_branching(line):
-                self.generate_test_expr(line['test'])
-                # After Z3 expression is parsed, call Solver
-                s = z3.Solver()
+        # detect branching (If statements)
+        elif self.detect_branching(line):
+            self.generate_test_expr(line['test'])
+            # After Z3 expression is parsed, call Solver
+            s = z3.Solver()
 
-                if hasattr(self.z3e,  '__call__'):
-                    s.add(self.z3e())
-                else:
-                    s.add(self.z3e)
-
-                for k, expr in self.constraints.items():
+            if hasattr(self.z3e,  '__call__'):
+                s.add(self.z3e())
+            else:
+                s.add(self.z3e)
+            for k, expr in self.constraints.items():
+                if hasattr(expr,  '__call__'):
                     s.add(expr())
-
-                satisfied = s.check()
-                if satisfied == z3.sat:
-                    model = s.model()
-                    self.tests.append(model)
-                    self.expressions.append(self.z3e)
                 else:
-                    self.errors.append(f"Unsatisfied: {self.z3e}")
+                    s.add(expr)
+
+            satisfied = s.check()
+            if satisfied == z3.sat:
+                model = s.model()
+                self.tests.append(model)
+                self.expressions.append(self.z3e)
+            else:
+                self.errors.append(f"Unsatisfied: {self.z3e}")
+
+        if 'body' in line:
+            for sub_line in line['body']:
+                self.parse_body_line(sub_line)
 
     def detect_var(self, line) -> bool:
         line_type = line['_type']
@@ -190,12 +198,17 @@ class FunctionParser():
     def generate_test_expr(self, test: dict):
         test_type = test['_type']
 
+        if test_type == 'Name':
+            var_name = test['id']
+            z3_var = self.args[var_name]
+            self.z3e = lambda: z3_var == True
+
         if test_type in ['UnaryOp', 'BoolOp']:
             op_type = test['op']['_type']
 
             # self.expr = f"{op_type}({self.build_test_expr(test)})"
             z3_op = z3tools.get_z3_op_type(op_type)
-            self.z3e = z3_op(self.build_z3e(test))
+            self.z3e = z3_op(*self.build_z3e(test))
 
         if test_type == 'Compare':
             op_type = test['ops'][0]['_type']
@@ -209,6 +222,7 @@ class FunctionParser():
 
     def build_z3e(self, test: dict) -> list:
         sub_expr: list = []
+
         if 'values' in test:
             values = test['values']
             length = len(values)
@@ -240,6 +254,11 @@ class FunctionParser():
 
                 elif var_name:
                     sub_expr.append(self.args[var_name])
+
+        elif 'op' in test:
+            var_name = test['operand']['id']
+            z3_var = self.args[var_name]
+            sub_expr.append(z3_var)
 
         return sub_expr
 
