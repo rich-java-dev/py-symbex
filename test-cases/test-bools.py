@@ -1,4 +1,4 @@
-# # basic test file for branch detection/analysis
+# # # basic test file for branch detection/analysis
 
 
 # def test_func1(a: bool, b: bool) -> int:
@@ -47,14 +47,15 @@
 #     return 2
 
 
-def test_func5(a: bool, b: bool = True) -> int:
+def test_func6(a: bool, b: bool = True) -> int:
     if a:
         if b:
             return 1
         if not b:
             return 2
-    if not a:
-        if b:
-            return 3
-        if not b:
-            return 4
+
+    # if not a:
+    #     if b:
+    #         return 3
+    #     if not b:
+    #         return 4

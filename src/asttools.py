@@ -6,6 +6,7 @@ import json
 from ast2json import ast2json
 import z3tools
 import z3
+import copy
 
 '''
 AST CHEATSHEAT
@@ -91,6 +92,14 @@ expr = BoolOp(boolop op, expr* values)
 '''
 
 
+'''
+'''
+
+
+def get_expr(expr):
+    return expr() if hasattr(expr,  '__call__') else expr
+
+
 class FunctionParser():
 
     def __init__(self, func_name: str, body: dict):
@@ -102,31 +111,58 @@ class FunctionParser():
         self.expressions = []
         self.errors = []
 
-        self.z3e = None
-
         args = body['args']['args']
         # function args
         self.args = {arg['arg']:
                      z3tools.get_z3_var(arg['arg'], arg['annotation']['id'])
                      for arg in args}
 
+        # local vars and function args
+        self.vars = copy.deepcopy(self.args)
+
+    '''
+
+    '''
+
     def debug(self):
         print(f"function: {self.name}")
         print(f"args: {self.args}")
-        print(f"branch expressions: {self.expressions}")
-        print(f"constraints: {self.constraints}")
+        print(f"vars:{self.vars}")
+
+        print(f"branch expressions: ")
+        for expr in self.expressions:
+            for k, v in expr.items():
+                print(get_expr(v))
+
+        print(f"constraints:")
+        for k, expr in self.constraints.items():
+            print(get_expr(expr))
+
         print(f"tests: {self.tests}")
+
         print(f"Errors/Issues: {self.errors}")
+        for err in self.errors:
+            print(get_expr(err))
+
         # print(f"body: {self.body}")
         # print(f"expr: {self.expr}")
         print("")
+
+    '''
+
+    '''
 
     def parse(self):
         # begin traversing function body
         for line in self.body:
             self.parse_body_line(line)
 
-    def parse_body_line(self, line):
+    '''
+
+    '''
+
+    def parse_body_line(self, line, depth=0):
+
         if self.detect_var(line):
             self.store_var(line)
 
@@ -135,90 +171,132 @@ class FunctionParser():
 
         # detect branching (If statements)
         elif self.detect_branching(line):
+            pre_branch_constraints = copy.deepcopy(self.constraints)
+
             self.generate_test_expr(line['test'])
+
+            if 'body' in line:
+                for sub_line in line['body']:
+                    self.parse_body_line(sub_line, depth+1)
+
             # After Z3 expression is parsed, call Solver
             s = z3.Solver()
 
-            if hasattr(self.z3e,  '__call__'):
-                s.add(self.z3e())
-            else:
-                s.add(self.z3e)
             for k, expr in self.constraints.items():
-                if hasattr(expr,  '__call__'):
-                    s.add(expr())
-                else:
-                    s.add(expr)
+                s.add(get_expr(expr))
+
+            z3e = self.constraints
 
             satisfied = s.check()
             if satisfied == z3.sat:
                 model = s.model()
                 self.tests.append(model)
-                self.expressions.append(self.z3e)
-            else:
-                self.errors.append(f"Unsatisfied: {self.z3e}")
+                self.expressions.append(get_expr(z3e))
 
-        if 'body' in line:
-            for sub_line in line['body']:
-                self.parse_body_line(sub_line)
+            else:
+                self.errors.append(
+                    f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
+
+            self.constraints = pre_branch_constraints
+
+        # restore original branch conditions/'unwind' out of them
+        # self.constraints = pre_branch_conditions
+        # if 'body' in line:
+        #     for sub_line in line['body']:
+        #         self.parse_body_line(sub_line)
+
+    '''
+
+    '''
 
     def detect_var(self, line) -> bool:
         line_type = line['_type']
         return line_type == 'AnnAssign'
 
+    '''
+
+    '''
     # store variables in Z3 context
+
     def store_var(self, line):
         var_name = line['target']['id']
         var_type = line['annotation']['id']
         z3_var = z3tools.get_z3_var(var_name, var_type)
-        self.args[var_name] = z3_var
+        self.vars[var_name] = z3_var
 
         # add a constraint for the variable
         var_value = line['value']['value']
         self.constraints[var_name] = lambda: (z3_var == var_value)
 
+    '''
+
+    '''
+
     def detect_var_change(self, line) -> bool:
         line_type = line['_type']
         return line_type == 'Assign'
+
+    '''
+
+    '''
 
     def store_var_change(self, line):
 
         for target in line['targets']:
             var_name = target['id']
-            z3_var = self.args[var_name]
+
+            z3_var = self.vars[var_name]
 
             # add a constraint for the variable
             var_value = line['value']['value']
             self.constraints[var_name] = lambda: (z3_var == var_value)
+
+    '''
+
+    '''
 
     def detect_branching(self, line) -> bool:
         line_type = line['_type']
         # limit implementation to only handle IF statements for now
         return line_type == 'If'
 
+    '''
+
+    '''
+
     def generate_test_expr(self, test: dict):
         test_type = test['_type']
 
+        def z3e(): return False
+
         if test_type == 'Name':
             var_name = test['id']
-            z3_var = self.args[var_name]
-            self.z3e = lambda: z3_var == True
+            z3_var = self.vars[var_name]
+            def z3e(): return z3_var == True
 
         if test_type in ['UnaryOp', 'BoolOp']:
             op_type = test['op']['_type']
 
             # self.expr = f"{op_type}({self.build_test_expr(test)})"
             z3_op = z3tools.get_z3_op_type(op_type)
-            self.z3e = z3_op(*self.build_z3e(test))
+            z3e = z3_op(*self.build_z3e(test))
 
         if test_type == 'Compare':
             op_type = test['ops'][0]['_type']
             op_value = test['comparators'][0]['value']
             left_id = test['left']['id']
-            left_var = self.args[left_id]
+            left_var = self.vars[left_id]
             z3_op = z3tools.get_z3_op_type(op_type)
-            self.z3e = lambda: z3_op(left_var, op_value)
+            def z3e(): return z3_op(left_var, op_value)
 
-    # recursive function to consume/traverse the AST
+        for i in range(0, 100):
+            if i in self.constraints:
+                continue
+            self.constraints[i] = z3e
+            break
+    '''
+    recursive function to consume/traverse the AST
+    '''
 
     def build_z3e(self, test: dict) -> list:
         sub_expr: list = []
@@ -245,19 +323,19 @@ class FunctionParser():
                     inner_z3_op = z3tools.get_z3_op_type(inner_op_type)
                     inner_z3_operands = None
                     if var_name:
-                        if var_name in self.args:
-                            inner_z3_operands = self.args[var_name]
+                        if var_name in self.vars:
+                            inner_z3_operands = self.vars[var_name]
                     else:
                         inner_z3_operands = self.build_z3e(value)
 
                     sub_expr.append(inner_z3_op(inner_z3_operands))
 
                 elif var_name:
-                    sub_expr.append(self.args[var_name])
+                    sub_expr.append(self.vars[var_name])
 
         elif 'op' in test:
             var_name = test['operand']['id']
-            z3_var = self.args[var_name]
+            z3_var = self.vars[var_name]
             sub_expr.append(z3_var)
 
         return sub_expr
@@ -277,9 +355,15 @@ class FileParser():
         self.json_tree = ast2json(self.ast_tree)
         self.functions: list = []
 
+    '''
+    '''
+
     def results(self):
         for func in self.functions:
             func.debug()
+
+    '''
+    '''
 
     def parse(self):
 
@@ -295,6 +379,9 @@ class FileParser():
             parse_func: FunctionParser = FunctionParser(func_name, body)
             parse_func.parse()
             self.functions.append(parse_func)
+
+    '''
+    '''
 
     def detect_branching(self, line) -> bool:
         line_type = line['_type']
