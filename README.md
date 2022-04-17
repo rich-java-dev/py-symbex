@@ -14,6 +14,10 @@ Symbolic Execution is the technique of analyzing source code for the purpose of 
 
 - [X] dump and traverse python source file as AST (Abstract Syntax Tree)
 - [X] initial integration of Z3 sat solver
+  - [X] handling boolean expressions
+    - [X] implement OR, AND, NOT
+  - [X] handling int expressions
+    - [X] implement equals, greater than, less than, greater or equal, less or equal
 - [X] detect IF branching
 - [X] handle line traversal and store satisfiable input agruments in tests structure
 - [X] handling (store/update) local variables or changes to input variables

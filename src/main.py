@@ -3,7 +3,7 @@ from asttools import FileParser
 
 parser = argparse.ArgumentParser('Static Parser - ')
 parser.add_argument('--filename', '--f', '-f',
-                    default="test-cases/test-bools.py")
+                    default="test-cases/test-ints.py")
 args = parser.parse_args()
 print(args)
 
@@ -14,6 +14,6 @@ filename: str = args.filename
 # parse file
 
 parser: FileParser = FileParser(filename)
-parser.print_ast()
+# parser.print_ast()
 parser.parse()
 parser.results()

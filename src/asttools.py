@@ -102,12 +102,7 @@ def get_expr(expr):
 
 
 ''''
-
 Function Parser
-
-The 
-
-
 '''
 
 
@@ -192,35 +187,38 @@ class FunctionParser():
                 for sub_line in line['body']:
                     self.parse_body_line(sub_line, depth+1)
 
-            # After Z3 expression is parsed, call Solver
-            s = z3.Solver()
-
-            for k, expr in self.constraints.items():
-                s.add(get_expr(expr))
-
-            z3e = self.constraints
-
-            satisfied = s.check()
-            if satisfied == z3.sat:
-                model = s.model()
-                self.tests.add(model)
-                self.expressions.append(get_expr(z3e))
-
-            else:
-                self.errors.append(
-                    f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
+            self.check_satisfiability(line)
 
             self.constraints = pre_branch_constraints
             self.store_constraint(negate_z3e)
+            self.check_satisfiability(line)
+            self.constraints = pre_branch_constraints
             # process or-else blocks
             self.handle_or_else(line)
             # again, restore constraints
             self.constraints = pre_branch_constraints
-        # restore original branch conditions/'unwind' out of them
-        # self.constraints = pre_branch_conditions
-        # if 'body' in line:
-        #     for sub_line in line['body']:
-        #         self.parse_body_line(sub_line)
+
+            # self.handle_or(line)
+            # self.constraints = pre_branch_constraints
+
+    def check_satisfiability(self, line: dict):
+        # After Z3 expression is parsed, call Solver
+        s = z3.Solver()
+
+        for k, expr in self.constraints.items():
+            s.add(get_expr(expr))
+
+        z3e = self.constraints
+
+        satisfied = s.check()
+        if satisfied == z3.sat:
+            model = s.model()
+            self.tests.add(str(model))
+            self.expressions.append(get_expr(z3e))
+
+        else:
+            self.errors.append(
+                f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
 
     '''
 
@@ -362,6 +360,14 @@ class FunctionParser():
                 if(inner_op == 'UnaryOp'):
                     var_name = value['operand']['id']
 
+                elif(inner_op == 'Compare'):
+                    op_type = value['ops'][0]['_type']
+                    op_value = value['comparators'][0]['value']
+                    left_id = value['left']['id']
+                    left_var = self.vars[left_id]
+                    z3_op = z3tools.get_z3_op_type(op_type)
+                    sub_expr.append(z3_op(left_var, op_value))
+
                 # print(var_name)
                 # print(inner_op)
                 # print(inner_op_type)
@@ -392,7 +398,7 @@ class FunctionParser():
     '''
 
     def handle_or_else(self, line=dict):
-        if "orelse" not in line:
+        if 'orelse' not in line:
             return
 
         orelse_lines = line['orelse']
