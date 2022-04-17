@@ -94,6 +94,7 @@ expr = BoolOp(boolop op, expr* values)
 
 
 '''
+GET_EXPR
 '''
 
 
@@ -128,7 +129,7 @@ class FunctionParser():
         self.vars = copy.deepcopy(self.args)
 
     '''
-
+    DEBUG PRINTER
     '''
 
     def debug(self):
@@ -156,7 +157,7 @@ class FunctionParser():
         print("")
 
     '''
-
+    PARSE
     '''
 
     def parse(self):
@@ -165,41 +166,23 @@ class FunctionParser():
             self.parse_body_line(line)
 
     '''
-
+    PARSE_BODY_LINE
     '''
 
     def parse_body_line(self, line, depth=0):
 
         if self.detect_var(line):
-            self.store_var(line)
+            self.handle_var(line)
 
         elif self.detect_var_change(line):
-            self.store_var_change(line)
+            self.handle_var_change(line)
 
-        # detect branching (If statements)
-        elif self.detect_branching(line):
-            pre_branch_constraints = copy.deepcopy(self.constraints)
+        elif self.detect_branching(line):  # detect branching (If statements)
+            self.handle_branching(line, depth)
 
-            z3e = self.generate_test_expr(line['test'])
-            negate_z3e = z3tools.py2z3_op_map['Not'](get_expr(z3e))
-
-            if 'body' in line:
-                for sub_line in line['body']:
-                    self.parse_body_line(sub_line, depth+1)
-
-            self.check_satisfiability(line)
-
-            self.constraints = pre_branch_constraints
-            self.store_constraint(negate_z3e)
-            self.check_satisfiability(line)
-            self.constraints = pre_branch_constraints
-            # process or-else blocks
-            self.handle_or_else(line)
-            # again, restore constraints
-            self.constraints = pre_branch_constraints
-
-            # self.handle_or(line)
-            # self.constraints = pre_branch_constraints
+    '''
+    CHECK_SATISFIABILITY
+    '''
 
     def check_satisfiability(self, line: dict):
         # After Z3 expression is parsed, call Solver
@@ -221,28 +204,8 @@ class FunctionParser():
                 f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
 
     '''
-
+    GET_VAR_VALUES
     '''
-
-    def detect_var(self, line) -> bool:
-        line_type = line['_type']
-        return line_type == 'AnnAssign'
-
-    '''
-
-    '''
-    # store variables in Z3 context
-
-    def store_var(self, line):
-        var_name = line['target']['id']
-        var_type = line['annotation']['id']
-        z3_var = z3tools.get_z3_var(var_name, var_type)
-        self.vars[var_name] = z3_var
-
-        # add a constraint for the variable
-        var_value = self.get_var_value(line['value'])
-
-        self.constraints[var_name] = lambda: (z3_var == var_value)
 
     def get_var_value(self, value: dict):
         if 'value' in value:
@@ -257,7 +220,15 @@ class FunctionParser():
         return None
 
     '''
+    DETECT VAR
+    '''
 
+    def detect_var(self, line) -> bool:
+        line_type = line['_type']
+        return line_type == 'AnnAssign'
+
+    '''
+    DETECT_VAR_CHANGE
     '''
 
     def detect_var_change(self, line) -> bool:
@@ -265,7 +236,7 @@ class FunctionParser():
         return line_type == 'Assign'
 
     '''
-
+    DETECT_OR_ELSE
     '''
 
     def detect_or_else(self, line) -> bool:
@@ -273,10 +244,73 @@ class FunctionParser():
         return line_type == 'Assign'
 
     '''
-
+    DETECT_BRANCHING
     '''
 
-    def store_var_change(self, line):
+    def detect_branching(self, line) -> bool:
+        line_type = line['_type']
+        # limit implementation to only handle IF statements for now
+        return line_type == 'If'
+
+    '''
+    HANDLE_BRANCHING
+    '''
+
+    def handle_branching(self, line, depth=0):
+        pre_branch_constraints = copy.deepcopy(self.constraints)
+
+        z3e = self.generate_test_expr(line['test'])
+        negate_z3e = z3tools.py2z3_op_map['Not'](get_expr(z3e))
+
+        if 'body' in line:
+            for sub_line in line['body']:
+                self.parse_body_line(sub_line, depth+1)
+
+        self.check_satisfiability(line)
+
+        self.constraints = pre_branch_constraints
+        # process or-else blocks
+        self.handle_or_else(negate_z3e, line)
+        # again, restore constraints
+        self.constraints = pre_branch_constraints
+
+    '''
+    HANDLE_OR_ELSE
+    '''
+
+    def handle_or_else(self, negate_z3e, line=dict):
+        if 'orelse' not in line:
+            return
+
+        orelse_lines = line['orelse']
+        if len(orelse_lines) > 0:
+            self.store_constraint(negate_z3e)
+            self.check_satisfiability(line)
+            for oeline in orelse_lines:
+                self.parse_body_line(oeline)
+
+    '''
+    HANDLE_VAR
+    '''
+
+    def handle_var(self, line):
+        # store variables in Z3 context
+
+        var_name = line['target']['id']
+        var_type = line['annotation']['id']
+        z3_var = z3tools.get_z3_var(var_name, var_type)
+        self.vars[var_name] = z3_var
+
+        # add a constraint for the variable
+        var_value = self.get_var_value(line['value'])
+
+        self.constraints[var_name] = lambda: (z3_var == var_value)
+
+    '''
+    HANDLE_VAR_CHANGE
+    '''
+
+    def handle_var_change(self, line):
 
         for target in line['targets']:
             var_name = target['id']
@@ -288,16 +322,7 @@ class FunctionParser():
             self.constraints[var_name] = lambda: (z3_var == var_value)
 
     '''
-
-    '''
-
-    def detect_branching(self, line) -> bool:
-        line_type = line['_type']
-        # limit implementation to only handle IF statements for now
-        return line_type == 'If'
-
-    '''
-
+    GENERATE_TEST_EXPR
     '''
 
     def generate_test_expr(self, test: dict):
@@ -318,18 +343,25 @@ class FunctionParser():
             z3e = z3_op(*self.build_z3e(test))
 
         if test_type == 'Compare':
-            op_type = test['ops'][0]['_type']
-            op_value = test['comparators'][0]['value']
-            left_id = test['left']['id']
-            left_var = self.vars[left_id]
-            z3_op = z3tools.get_z3_op_type(op_type)
-            def z3e(): return z3_op(left_var, op_value)
+            z3e = self.handle_compare(test)
 
         self.store_constraint(z3e)
         return z3e
 
     '''
+    HANDLE COMPARE
+    '''
 
+    def handle_compare(self, test):
+        op_type = test['ops'][0]['_type']
+        op_value = test['comparators'][0]['value']
+        left_id = test['left']['id']
+        left_var = self.vars[left_id]
+        z3_op = z3tools.get_z3_op_type(op_type)
+        return z3_op(left_var, op_value)
+
+    '''
+    STORE_CONSTRAINT
     '''
 
     def store_constraint(self, expr):
@@ -340,6 +372,7 @@ class FunctionParser():
             break
 
     '''
+    BUILD_Z3E
     recursive function to consume/traverse the AST
     '''
 
@@ -349,42 +382,9 @@ class FunctionParser():
         if 'values' in test:
             values = test['values']
             length = len(values)
-
             for i in range(length):
                 value = values[i]
-
-                var_name = value['id'] if 'id' in value else ''
-                inner_op = value['_type'] if '_type' in value else ''
-                inner_op_type = value['op']['_type'] if 'op' in value else ''
-
-                if(inner_op == 'UnaryOp'):
-                    var_name = value['operand']['id']
-
-                elif(inner_op == 'Compare'):
-                    op_type = value['ops'][0]['_type']
-                    op_value = value['comparators'][0]['value']
-                    left_id = value['left']['id']
-                    left_var = self.vars[left_id]
-                    z3_op = z3tools.get_z3_op_type(op_type)
-                    sub_expr.append(z3_op(left_var, op_value))
-
-                # print(var_name)
-                # print(inner_op)
-                # print(inner_op_type)
-
-                if inner_op_type:
-                    inner_z3_op = z3tools.get_z3_op_type(inner_op_type)
-                    inner_z3_operands = None
-                    if var_name:
-                        if var_name in self.vars:
-                            inner_z3_operands = self.vars[var_name]
-                    else:
-                        inner_z3_operands = self.build_z3e(value)
-
-                    sub_expr.append(inner_z3_op(inner_z3_operands))
-
-                elif var_name:
-                    sub_expr.append(self.vars[var_name])
+                sub_expr.append(self.handle_expr_values(value))
 
         elif 'op' in test:
             var_name = test['operand']['id']
@@ -394,17 +394,31 @@ class FunctionParser():
         return sub_expr
 
     '''
-
+    HANDLE_EXPR_VALUES
     '''
 
-    def handle_or_else(self, line=dict):
-        if 'orelse' not in line:
-            return
+    def handle_expr_values(self, value):
+        var_name = value['id'] if 'id' in value else ''
+        inner_op = value['_type'] if '_type' in value else ''
+        inner_op_type = value['op']['_type'] if 'op' in value else ''
 
-        orelse_lines = line['orelse']
-        for oeline in orelse_lines:
-            print(oeline)
-            self.parse_body_line(oeline)
+        if(inner_op == 'UnaryOp'):
+            var_name = value['operand']['id']
+        elif(inner_op == 'Compare'):
+            return self.handle_compare(value)
+
+        if inner_op_type:
+            inner_z3_op = z3tools.get_z3_op_type(inner_op_type)
+            inner_z3_operands = None
+            if var_name:
+                if var_name in self.vars:
+                    inner_z3_operands = self.vars[var_name]
+            else:
+                inner_z3_operands = self.build_z3e(value)
+
+            return inner_z3_op(inner_z3_operands)
+        elif var_name:
+            return self.vars[var_name]
 
 
 """
