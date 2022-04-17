@@ -14,5 +14,6 @@ filename: str = args.filename
 # parse file
 
 parser: FileParser = FileParser(filename)
+parser.print_ast()
 parser.parse()
 parser.results()

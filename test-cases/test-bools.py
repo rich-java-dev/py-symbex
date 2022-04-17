@@ -47,15 +47,17 @@
 #     return 2
 
 
-def test_func6(a: bool, b: bool = True) -> int:
+# def test_func6(a: bool, b: bool = True) -> int:
+#     if a:
+#         if b:
+#             return 1
+#     elif not b:
+#         return 2
+
+
+def test_func7(a: bool, b: bool = True) -> int:
     if a:
         if b:
             return 1
-        if not b:
+        else:
             return 2
-
-    # if not a:
-    #     if b:
-    #         return 3
-    #     if not b:
-    #         return 4

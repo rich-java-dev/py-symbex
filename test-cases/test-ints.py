@@ -1,20 +1,11 @@
 
-def test1(a: int, b: int):
+def test1(a: int, b: int, c: bool):
 
-    if(a > 100):
-        return True
 
-    if (a <= 10):
-        return False
+    if a > 100:
+        return 1
+    
+    if a < 100 and not b:
+        return 2
 
-    if (a >= 1000):
-        return False
-
-    if(a < 0):
-        return True
-
-    # if(a > b):
-    #     return True
-
-    # if(a < b):
-    #     return False
+    return 3

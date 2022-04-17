@@ -1,6 +1,7 @@
 from z3 import *
 
-# build out a mapping from 'AST' generated python phrases to Z3 ArithRef
+# build out a mapping from 'AST' generated python string representation Operators
+# to Z3's ArithReference
 py2z3_op_map: dict = {
     'Or': Or,
     'And': And,

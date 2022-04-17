@@ -3,6 +3,7 @@
 
 import ast
 import json
+from typing import Set
 from ast2json import ast2json
 import z3tools
 import z3
@@ -100,13 +101,24 @@ def get_expr(expr):
     return expr() if hasattr(expr,  '__call__') else expr
 
 
+''''
+
+Function Parser
+
+The 
+
+
+'''
+
+
 class FunctionParser():
 
     def __init__(self, func_name: str, body: dict):
+
         self.name = func_name
         self.body = body['body']
 
-        self.tests = []
+        self.tests: Set = set()
         self.constraints = {}
         self.expressions = []
         self.errors = []
@@ -129,14 +141,14 @@ class FunctionParser():
         print(f"args: {self.args}")
         print(f"vars:{self.vars}")
 
-        print(f"branch expressions: ")
-        for expr in self.expressions:
-            for k, v in expr.items():
-                print(get_expr(v))
+        # print(f"branch expressions: ")
+        # for expr in self.expressions:
+        #     for k, v in expr.items():
+        #         print(get_expr(v))
 
-        print(f"constraints:")
-        for k, expr in self.constraints.items():
-            print(get_expr(expr))
+        # print(f"constraints:")
+        # for k, expr in self.constraints.items():
+        #     print(get_expr(expr))
 
         print(f"tests: {self.tests}")
 
@@ -173,7 +185,8 @@ class FunctionParser():
         elif self.detect_branching(line):
             pre_branch_constraints = copy.deepcopy(self.constraints)
 
-            self.generate_test_expr(line['test'])
+            z3e = self.generate_test_expr(line['test'])
+            negate_z3e = z3tools.py2z3_op_map['Not'](get_expr(z3e))
 
             if 'body' in line:
                 for sub_line in line['body']:
@@ -190,7 +203,7 @@ class FunctionParser():
             satisfied = s.check()
             if satisfied == z3.sat:
                 model = s.model()
-                self.tests.append(model)
+                self.tests.add(model)
                 self.expressions.append(get_expr(z3e))
 
             else:
@@ -198,7 +211,11 @@ class FunctionParser():
                     f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
 
             self.constraints = pre_branch_constraints
-
+            self.store_constraint(negate_z3e)
+            # process or-else blocks
+            self.handle_or_else(line)
+            # again, restore constraints
+            self.constraints = pre_branch_constraints
         # restore original branch conditions/'unwind' out of them
         # self.constraints = pre_branch_conditions
         # if 'body' in line:
@@ -225,14 +242,35 @@ class FunctionParser():
         self.vars[var_name] = z3_var
 
         # add a constraint for the variable
-        var_value = line['value']['value']
+        var_value = self.get_var_value(line['value'])
+
         self.constraints[var_name] = lambda: (z3_var == var_value)
+
+    def get_var_value(self, value: dict):
+        if 'value' in value:
+            return value['value']
+
+        if 'id' in value:
+            ref = value['id']
+
+            if ref in self.vars:
+                return self.vars[ref]
+
+        return None
 
     '''
 
     '''
 
     def detect_var_change(self, line) -> bool:
+        line_type = line['_type']
+        return line_type == 'Assign'
+
+    '''
+
+    '''
+
+    def detect_or_else(self, line) -> bool:
         line_type = line['_type']
         return line_type == 'Assign'
 
@@ -289,11 +327,20 @@ class FunctionParser():
             z3_op = z3tools.get_z3_op_type(op_type)
             def z3e(): return z3_op(left_var, op_value)
 
+        self.store_constraint(z3e)
+        return z3e
+
+    '''
+
+    '''
+
+    def store_constraint(self, expr):
         for i in range(0, 100):
             if i in self.constraints:
                 continue
-            self.constraints[i] = z3e
+            self.constraints[i] = expr
             break
+
     '''
     recursive function to consume/traverse the AST
     '''
@@ -340,6 +387,19 @@ class FunctionParser():
 
         return sub_expr
 
+    '''
+
+    '''
+
+    def handle_or_else(self, line=dict):
+        if "orelse" not in line:
+            return
+
+        orelse_lines = line['orelse']
+        for oeline in orelse_lines:
+            print(oeline)
+            self.parse_body_line(oeline)
+
 
 """
 Root Parser, which iterates over a provided python source file,
@@ -361,6 +421,12 @@ class FileParser():
     def results(self):
         for func in self.functions:
             func.debug()
+
+    '''
+    '''
+
+    def print_ast(self):
+        print(json.dumps(self.json_tree, indent=4))
 
     '''
     '''
