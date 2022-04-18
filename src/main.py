@@ -1,9 +1,9 @@
 import argparse
-from asttools import FileParser
+from symbex import FileParser
 
 parser = argparse.ArgumentParser('Static Parser - ')
 parser.add_argument('--filename', '--f', '-f',
-                    default="test-cases/test-bools.py")
+                    default="test-cases/test-ints.py")
 args = parser.parse_args()
 print(args)
 

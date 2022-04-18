@@ -157,7 +157,7 @@ class FunctionParser():
         print("")
 
     '''
-    PARSE
+    PARSE - base call/initiate parsing of function
     '''
 
     def parse(self):
@@ -354,11 +354,33 @@ class FunctionParser():
 
     def handle_compare(self, test):
         op_type = test['ops'][0]['_type']
-        op_value = test['comparators'][0]['value']
-        left_id = test['left']['id']
-        left_var = self.vars[left_id]
+
+        comparator = test['comparators'][0]
+        op_value = self.get_expr_value(comparator)
+        left_expr = self.get_expr_value(test['left'])
+
         z3_op = z3tools.get_z3_op_type(op_type)
-        return z3_op(left_var, op_value)
+        return z3_op(left_expr, op_value)
+
+    '''
+    GET EXPRESSION VALUE
+    recursive function to evaluate out test expressions
+    '''
+
+    def get_expr_value(self, expr: dict):
+        if 'id' in expr:
+            expr_id = expr['id']
+            return self.vars[expr_id]
+
+        if 'value' in expr:
+            return expr['value']
+
+        if 'left' in expr:
+            left = self.get_expr_value(expr['left'])
+            right = self.get_expr_value(expr['right'])
+            op_type = expr['op']['_type']
+            z3_op = z3tools.get_z3_op_type(op_type)
+            return z3_op(left, right)
 
     '''
     STORE_CONSTRAINT

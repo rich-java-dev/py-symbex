@@ -11,11 +11,13 @@ py2z3_op_map: dict = {
     'Lt': ArithRef.__lt__,
     'LtE': ArithRef.__le__,
     'GtE': ArithRef.__ge__,
+    'Mod': ArithRef.__mod__,
 }
 
 py2z3_var_map: dict = {
     'bool': Bool,
     'int': Int,
+    'str': String
 }
 
 
