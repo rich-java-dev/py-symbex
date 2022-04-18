@@ -204,22 +204,6 @@ class FunctionParser():
                 f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
 
     '''
-    GET_VAR_VALUES
-    '''
-
-    def get_var_value(self, value: dict):
-        if 'value' in value:
-            return value['value']
-
-        if 'id' in value:
-            ref = value['id']
-
-            if ref in self.vars:
-                return self.vars[ref]
-
-        return None
-
-    '''
     DETECT VAR
     '''
 
@@ -302,7 +286,7 @@ class FunctionParser():
         self.vars[var_name] = z3_var
 
         # add a constraint for the variable
-        var_value = self.get_var_value(line['value'])
+        var_value = self.get_expr_value(line['value'])
 
         self.constraints[var_name] = lambda: (z3_var == var_value)
 
@@ -318,7 +302,7 @@ class FunctionParser():
             z3_var = self.vars[var_name]
 
             # add a constraint for the variable
-            var_value = line['value']['value']
+            var_value = self.get_expr_value(line['value'])
             self.constraints[var_name] = lambda: (z3_var == var_value)
 
     '''
@@ -381,6 +365,12 @@ class FunctionParser():
             op_type = expr['op']['_type']
             z3_op = z3tools.get_z3_op_type(op_type)
             return z3_op(left, right)
+
+        if 'op' in expr:
+            operand = self.get_expr_value(expr['operand'])
+            op_type = expr['op']['_type']
+            z3_op = z3tools.get_z3_op_type(op_type)
+            return z3_op(operand)
 
     '''
     STORE_CONSTRAINT

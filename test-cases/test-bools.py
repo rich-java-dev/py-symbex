@@ -46,6 +46,16 @@ def test_func5(a: bool, b: bool = True) -> int:
 
 
 def test_func6(a: bool, b: bool = True) -> int:
+    c: bool = True
+    c = not a
+
+    if a and b and not c:
+        return 1
+
+    return 2
+
+
+def test_fun7(a: bool, b: bool = True) -> int:
     if a:
         if b:
             return 1
@@ -53,7 +63,7 @@ def test_func6(a: bool, b: bool = True) -> int:
         return 2
 
 
-def test_func7(a: bool, b: bool = True) -> int:
+def test_func8(a: bool, b: bool = True) -> int:
     if a:
         if b:
             return 1
@@ -61,10 +71,10 @@ def test_func7(a: bool, b: bool = True) -> int:
             return 2
 
 
-# def test_func8(a: bool, b: bool = True) -> int:
-#     c: bool = True if False else False
+def test_func9(a: bool, b: bool = True) -> int:
+    c: bool = True if False else False
 
-#     if a and b and not c:
-#         return 1
+    if a and b and not c:
+        return 1
 
-#     return 2
+    return 2

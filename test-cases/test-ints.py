@@ -13,11 +13,25 @@ def test2(a: int, b: int, c: bool):
     if c and a > 100:
         return 1
 
-    if b < 100 and c:
+    if b < 100 and not c:
         return 2
 
 
 def test3(a: int, b: int):
+
+    c: int = a + b
+
+    if c > 100:
+        return 1
+    elif c < 0:
+        return 2
+    elif c == b:
+        return 3
+    else:
+        return 4
+
+
+def test4(a: int, b: int):
     if a > b and b > 100:
         if a % b == 0:
             return 1
@@ -31,7 +45,7 @@ def test3(a: int, b: int):
         return 5
 
 
-def test4(a: int, b: int, c: bool):
+def test5(a: int, b: int, c: bool):
 
     if c:
         if a == 1:
@@ -49,7 +63,7 @@ def test4(a: int, b: int, c: bool):
             return 6
 
 
-def test5(a: int, b: int):
+def test6(a: int, b: int):
     if a % 10 == 0:
         return 1
     elif a % 100 == 0:
