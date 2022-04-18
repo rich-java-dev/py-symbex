@@ -23,10 +23,10 @@ Symbolic Execution is the technique of analyzing source code for the purpose of 
 - [X] handling (store/update) local variables or changes to input variables
 - [X] identify dead code/unreachability via failed satisfiable branch conditions
 - [X] handle 'ORELSE' (elif/else semantics)
+- [X] non-trivial variable ASSIGNMENT
 - [ ] handle FOR loops
 - [ ] handle WHILE loops
 - [ ] refactor into non-branching structures
-- [ ] non-trivial variable ASSIGNMENT
 - [ ] ternary "a if b else c"
 
 ### Built With

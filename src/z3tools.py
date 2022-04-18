@@ -18,6 +18,22 @@ py2z3_op_map: dict = {
     'Mod': ArithRef.__mod__,
 }
 
+py2z3_bkup_op_map: dict = {
+    'Or': Or,
+    'And': And,
+    'Not': Not,
+    'Add': int.__add__,
+    'Sub': ArithRef.__sub__,
+    'Mul': ArithRef.__mul__,
+    'Div': ArithRef.__div__,
+    'Eq': ArithRef.__eq__,
+    'Gt': ArithRef.__gt__,
+    'Lt': ArithRef.__lt__,
+    'LtE': ArithRef.__le__,
+    'GtE': ArithRef.__ge__,
+    'Mod': ArithRef.__mod__,
+}
+
 py2z3_var_map: dict = {
     'bool': Bool,
     'int': Int,
@@ -28,6 +44,13 @@ py2z3_var_map: dict = {
 def get_z3_op_type(op_type):
     if op_type in py2z3_op_map:
         return py2z3_op_map[op_type]
+
+    print(f"DEBUG: missing op_type: {op_type}")
+
+
+def get_z3_bkup_op_type(op_type):
+    if op_type in py2z3_bkup_op_map:
+        return py2z3_bkup_op_map[op_type]
 
     print(f"DEBUG: missing op_type: {op_type}")
 

@@ -21,7 +21,7 @@ def test3(a: int, b: int):
 
     c: int = a + b
 
-    if c > 100:
+    if c > a + 10:
         return 1
     elif c < 0:
         return 2

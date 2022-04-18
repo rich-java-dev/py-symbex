@@ -364,7 +364,15 @@ class FunctionParser():
             right = self.get_expr_value(expr['right'])
             op_type = expr['op']['_type']
             z3_op = z3tools.get_z3_op_type(op_type)
-            return z3_op(left, right)
+            try:
+                return z3_op(left, right)
+            except Exception as e:
+                try:
+                    z3_op = z3tools.get_z3_bkup_op_type(op_type)
+                    return z3_op(left, right)
+                except Exception as e2:
+                    print(e)
+                    print(e2)
 
         if 'op' in expr:
             operand = self.get_expr_value(expr['operand'])
