@@ -18,22 +18,18 @@ py2z3_op_map: dict = {
     'Mod': ArithRef.__mod__,
 }
 
+# Fallback execution to evaluate expressions between Z3 and Python.
+# May handle some Type inference
 py2z3_bkup_op_map: dict = {
     'Or': Or,
     'And': And,
     'Not': Not,
     'Add': int.__add__,
-    'Sub': ArithRef.__sub__,
-    'Mul': ArithRef.__mul__,
-    'Div': ArithRef.__div__,
-    'Eq': ArithRef.__eq__,
-    'Gt': ArithRef.__gt__,
-    'Lt': ArithRef.__lt__,
-    'LtE': ArithRef.__le__,
-    'GtE': ArithRef.__ge__,
-    'Mod': ArithRef.__mod__,
+    'Sub': int.__sub__,
+    'Mul': int.__mul__,
 }
 
+# Mapping from Python dict key in string form to Z3 type
 py2z3_var_map: dict = {
     'bool': Bool,
     'int': Int,

@@ -3,7 +3,7 @@
 
 import ast
 import json
-from typing import Set
+from typing import Set, List
 from ast2json import ast2json
 import z3tools
 import z3
@@ -95,6 +95,7 @@ expr = BoolOp(boolop op, expr* values)
 
 '''
 GET_EXPR
+basic 'unwrap' function only if expression is a function
 '''
 
 
@@ -102,22 +103,130 @@ def get_expr(expr):
     return expr() if hasattr(expr,  '__call__') else expr
 
 
+"""
+Root Parser, which iterates over a provided python source file,
+then break down and parsed functions
+
+"""
+
+
+class FileParser():
+
+    def __init__(self, filename: str):
+        try:
+            self.ast_tree = ast.parse(open(filename).read())
+            self.json_tree = ast2json(self.ast_tree)
+            self.functions: list = []
+        except Exception as ex:
+            print(ex)
+            exit(1)
+
+    '''
+    PRINT RESULTS
+    '''
+
+    def results(self):
+        for func in self.functions:
+            func.debug()
+
+    '''
+    '''
+
+    def print_ast(self):
+        print(json.dumps(self.json_tree, indent=4))
+
+    '''
+    '''
+
+    def parse(self):
+
+        for body in self.json_tree['body']:
+
+            # Current Implementation Only interested in pure function analysis
+            if body["_type"] != "FunctionDef":
+                continue
+
+            # get function anme from AST
+            func_name = body['name']
+
+            parse_func: FunctionParser = FunctionParser(func_name, body)
+            parse_func.parse()
+            self.functions.append(parse_func)
+
+
+'''
+
+'''
+
+
+class CEViolation():
+
+    def __init__(self, expr, lineno):
+        self.expr = expr
+        self.lineno = lineno
+
+    def print(self):
+        print(f"Unsatisfied: - line {self.lineno} ({get_expr(self.expr)})")
+
+
+'''
+
+'''
+
+
+class TestCase():
+
+    def __init__(self, model, func_args):
+        self.model = model
+        self.args = func_args
+        self.test_vars = []
+
+        for k, var in self.args.items():
+            try:
+                val = self.model[var]
+                self.test_vars.append(f"{var} = {val}")
+            except Exception as e:
+                # print(e)
+                continue
+
+    def test(self):
+        return
+
+    def print(self):
+        print(self.test_vars)
+
+
 ''''
 Function Parser
+
+
 '''
 
 
 class FunctionParser():
 
     def __init__(self, func_name: str, body: dict):
+        '''
+            basic constructor for new FunctionParser instances
+
+        name: name of function
+        body:  main body source code of the function
+        tests:  concrete inputs accumlated to trigger various branches/paths
+        constraints: active constraint set of the ongoing parse/search
+        expressions: list of collected expressions through search
+        errors: list of triggered unsatisfiable conditional arguments for code branching
+
+        '''
 
         self.name = func_name
         self.body = body['body']
 
-        self.tests: Set = set()
+        self.tests = []
         self.constraints = {}
         self.expressions = []
         self.errors = []
+
+        self.skip_lines = []  # track lines which do not need to be re-parsed by the engine
 
         args = body['args']['args']
         # function args
@@ -135,7 +244,8 @@ class FunctionParser():
     def debug(self):
         print(f"function: {self.name}")
         print(f"args: {self.args}")
-        print(f"vars:{self.vars}")
+        print(f"vars: {self.vars}")
+        print()
 
         # print(f"branch expressions: ")
         # for expr in self.expressions:
@@ -146,15 +256,19 @@ class FunctionParser():
         # for k, expr in self.constraints.items():
         #     print(get_expr(expr))
 
-        print(f"tests: {self.tests}")
+        # print(f"tests: {self.tests}")
 
-        print(f"Errors/Issues: {self.errors}")
+        print(f"Test Cases: ")
+        for test in self.tests:
+            test.print()
+        print()
+        print(f"Errors/Issues: ")
         for err in self.errors:
-            print(get_expr(err))
-
+            err.print()
+        print()
+        print()
         # print(f"body: {self.body}")
         # print(f"expr: {self.expr}")
-        print("")
 
     '''
     PARSE - base call/initiate parsing of function
@@ -167,11 +281,17 @@ class FunctionParser():
 
     '''
     PARSE_BODY_LINE
+     basic line handling for symbolic execution
     '''
 
     def parse_body_line(self, line, depth=0):
 
-        if self.detect_var(line):
+        # special case where code has already been parsed
+        if self.detect_line_skip(line):
+            return
+
+        # handle a variable being defined/assigned for first time.
+        elif self.detect_var(line):
             self.handle_var(line)
 
         elif self.detect_var_change(line):
@@ -180,28 +300,45 @@ class FunctionParser():
         elif self.detect_branching(line):  # detect branching (If statements)
             self.handle_branching(line, depth)
 
+        elif self.detect_while_loop(line):
+            self.handle_while_loop(line)
+
     '''
     CHECK_SATISFIABILITY
+
+
     '''
 
     def check_satisfiability(self, line: dict):
         # After Z3 expression is parsed, call Solver
         s = z3.Solver()
 
+        # Take all of the constraints in member dictionary
+        # structure and add to the new Z3 model solver instance
         for k, expr in self.constraints.items():
             s.add(get_expr(expr))
 
+        # store constraints in local variable for easy
         z3e = self.constraints
 
         satisfied = s.check()
         if satisfied == z3.sat:
             model = s.model()
-            self.tests.add(str(model))
+            test_case = TestCase(model, self.args)
+            self.tests.append(test_case)
             self.expressions.append(get_expr(z3e))
+            return model
 
+        # store the error/ and continue parsing
         else:
-            self.errors.append(
-                f"Unsatisfied ({get_expr(z3e)}) - line {line['lineno']}")
+            err = CEViolation(z3e, line['lineno'])
+            self.errors.append(err)
+            return False
+
+    'DETECT LINE SKIP'
+
+    def detect_line_skip(self, line) -> bool:
+        return line['lineno'] in self.skip_lines
 
     '''
     DETECT VAR
@@ -237,7 +374,16 @@ class FunctionParser():
         return line_type == 'If'
 
     '''
+    DETECT_WHILE_LOOP
+    '''
+
+    def detect_while_loop(self, line) -> bool:
+        line_type = line['_type']
+        return line_type == 'While'
+
+    '''
     HANDLE_BRANCHING
+     If(expr test, stmt* body, stmt* orelse)
     '''
 
     def handle_branching(self, line, depth=0):
@@ -274,7 +420,37 @@ class FunctionParser():
                 self.parse_body_line(oeline)
 
     '''
+    HANDLE_WHILE_LOOP
+    While(expr test, stmt* body, stmt* orelse)
+    '''
+
+    def handle_while_loop(self, line=dict):
+        pre_branch_constraints = copy.deepcopy(self.constraints)
+        z3e = self.generate_test_expr(line['test'])
+        body = line['body']
+
+        skip_lines = []
+
+        while True:
+
+            m = self.check_satisfiability(line)
+            # constraint_var = self.get_constraint_var(get_expr(z3e))
+            # expr = m[constraint_var]
+
+            for line in body:
+                self.parse_body_line(line)
+
+                lineno = line['lineno']
+                if lineno not in skip_lines:
+                    skip_lines.append(lineno)
+            break
+
+        self.constraints = pre_branch_constraints
+
+    '''
     HANDLE_VAR
+    AnnAssign(expr target, expr annotation, expr? value, int simple)
+    Annotation Assignment, required
     '''
 
     def handle_var(self, line):
@@ -292,6 +468,7 @@ class FunctionParser():
 
     '''
     HANDLE_VAR_CHANGE
+    Assign(expr* targets, expr value, string? type_comment)
     '''
 
     def handle_var_change(self, line):
@@ -440,58 +617,10 @@ class FunctionParser():
         elif var_name:
             return self.vars[var_name]
 
-
-"""
-Root Parser, which iterates over a provided python source file,
-then break down and parsed functions
-
-"""
-
-
-class FileParser():
-
-    def __init__(self, filename: str):
-        self.ast_tree = ast.parse(open(filename).read())
-        self.json_tree = ast2json(self.ast_tree)
-        self.functions: list = []
-
     '''
+    GET CONSTRAINT VAR
     '''
 
-    def results(self):
-        for func in self.functions:
-            func.debug()
-
-    '''
-    '''
-
-    def print_ast(self):
-        print(json.dumps(self.json_tree, indent=4))
-
-    '''
-    '''
-
-    def parse(self):
-
-        for body in self.json_tree['body']:
-
-            # Current Implementation Only interested in pure function analysis
-            if body["_type"] != "FunctionDef":
-                continue
-
-            # get function anme from AST
-            func_name = body['name']
-
-            parse_func: FunctionParser = FunctionParser(func_name, body)
-            parse_func.parse()
-            self.functions.append(parse_func)
-
-    '''
-    '''
-
-    def detect_branching(self, line) -> bool:
-        line_type = line['_type']
-        if line_type == 'If':
-            return True
-
-        return False
+    def get_constraint_var(self, z3e):
+        print(z3e)
+        return z3e

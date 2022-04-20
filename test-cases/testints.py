@@ -61,6 +61,7 @@ def test5(a: int, b: int, c: bool):
             return 5
         else:
             return 6
+    
 
 
 def test6(a: int, b: int):

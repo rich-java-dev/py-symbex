@@ -6,6 +6,18 @@ A Static Analysis and Symbolic Execution tool for Analyzing python source code
 
 Symbolic Execution is the technique of analyzing source code for the purpose of identifying sets of inputs which lead programs through the various paths of execution without having to explore/test every possible input.
 
+
+## Note
+
+This tool has only been tested on very basic 'pure' functions with basic data structures.
+
+I'd like to build out more dynamic/symbolic control flow execution
+
+PEP 484 - Type Hints/Annotations are pretty much required to properly parse types to build formal Z3 models at this time.
+
+I do aim to build out more of the AST functionality and maybe then handle type inference better in some circumstances.
+
+
 ## Usage
 
 * python src/main.py -f sourcefile.py
@@ -33,4 +45,4 @@ Symbolic Execution is the technique of analyzing source code for the purpose of 
 
 * Z3
 * python AST
-
+* ast2json
