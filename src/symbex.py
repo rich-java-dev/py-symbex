@@ -195,6 +195,9 @@ class TestCase():
     def print(self):
         print(self.test_vars)
 
+    def get_printline(self):
+        return str(self.test_vars)
+
 
 ''''
 Function Parser
@@ -259,8 +262,9 @@ class FunctionParser():
         # print(f"tests: {self.tests}")
 
         print(f"Test Cases: ")
-        for test in self.tests:
-            test.print()
+        distinct_cases = set([test.get_printline() for test in self.tests])
+        for test in distinct_cases:
+            print(test)
         print()
         print(f"Errors/Issues: ")
         for err in self.errors:
@@ -431,20 +435,17 @@ class FunctionParser():
 
         skip_lines = []
 
-        while True:
+        self.store_constraint(z3e)
+        self.check_satisfiability(line)
 
-            m = self.check_satisfiability(line)
-            # constraint_var = self.get_constraint_var(get_expr(z3e))
-            # expr = m[constraint_var]
+        for line in body:
+            self.parse_body_line(line)
 
-            for line in body:
-                self.parse_body_line(line)
+            lineno = line['lineno']
+            if lineno not in skip_lines:
+                skip_lines.append(lineno)
 
-                lineno = line['lineno']
-                if lineno not in skip_lines:
-                    skip_lines.append(lineno)
-            break
-
+        self.skip_lines.extend(skip_lines)
         self.constraints = pre_branch_constraints
 
     '''
@@ -480,6 +481,7 @@ class FunctionParser():
 
             # add a constraint for the variable
             var_value = self.get_expr_value(line['value'])
+            vv = get_expr(var_value)
             self.constraints[var_name] = lambda: (z3_var == var_value)
 
     '''
