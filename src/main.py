@@ -5,7 +5,7 @@ from symbex import FileParser
 
 parser = argparse.ArgumentParser('Static Parser - ')
 parser.add_argument('--filename', '--f', '-f',
-                    default="test-cases/testbools.py")
+                    default="test-cases/testboolfunc.py")
 args = parser.parse_args()
 print(args)
 

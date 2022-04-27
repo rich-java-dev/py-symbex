@@ -10,7 +10,14 @@ import z3
 import copy
 
 '''
-AST CHEATSHEAT
+AST GUIDE:
+
+Fundamentally the aim is to implement all of the 
+syntactic expressions from the AST into meaningful
+execution path conditions, as a conjunction of Properties
+which define unique 
+
+
 https://docs.python.org/3/library/ast.html
 
 
@@ -271,8 +278,17 @@ class FunctionParser():
             err.print()
         print()
         print()
+
+        # self.print_ast()
         # print(f"body: {self.body}")
         # print(f"expr: {self.expr}")
+
+    '''
+    PRINT AST
+    '''
+
+    def print_ast(self):
+        print(json.dumps(self.body, indent=4))
 
     '''
     PARSE - base call/initiate parsing of function
@@ -319,8 +335,10 @@ class FunctionParser():
 
         # Take all of the constraints in member dictionary
         # structure and add to the new Z3 model solver instance
-        for k, expr in self.constraints.items():
-            s.add(get_expr(expr))
+        for k, v in self.constraints.items():
+            expr = get_expr(v)
+            if not expr == None:
+                s.add(expr)
 
         # store constraints in local variable for easy
         z3e = self.constraints
@@ -394,7 +412,12 @@ class FunctionParser():
         pre_branch_constraints = copy.deepcopy(self.constraints)
 
         z3e = self.generate_test_expr(line['test'])
-        negate_z3e = z3tools.py2z3_op_map['Not'](get_expr(z3e))
+
+        negate_z3e = None
+        try:
+            negate_z3e = z3tools.py2z3_op_map['Not'](get_expr(z3e))
+        except Exception as e:
+            print(f"cannot negate expression {z3e}")
 
         if 'body' in line:
             for sub_line in line['body']:
@@ -403,8 +426,11 @@ class FunctionParser():
         self.check_satisfiability(line)
 
         self.constraints = pre_branch_constraints
+
         # process or-else blocks
-        self.handle_or_else(negate_z3e, line)
+        if not negate_z3e == None:
+            self.handle_or_else(negate_z3e, line)
+
         # again, restore constraints
         self.constraints = pre_branch_constraints
 
@@ -434,7 +460,6 @@ class FunctionParser():
         body = line['body']
 
         skip_lines = []
-
         self.store_constraint(z3e)
         self.check_satisfiability(line)
 
@@ -464,6 +489,8 @@ class FunctionParser():
 
         # add a constraint for the variable
         var_value = self.get_expr_value(line['value'])
+        if var_type == 'str':
+            var_value = z3tools.get_z3_str_value(var_value)
 
         self.constraints[var_name] = lambda: (z3_var == var_value)
 
@@ -481,7 +508,7 @@ class FunctionParser():
 
             # add a constraint for the variable
             var_value = self.get_expr_value(line['value'])
-            vv = get_expr(var_value)
+
             self.constraints[var_name] = lambda: (z3_var == var_value)
 
     '''
@@ -523,7 +550,25 @@ class FunctionParser():
         left_expr = self.get_expr_value(test['left'])
 
         z3_op = z3tools.get_z3_op_type(op_type)
-        return z3_op(left_expr, op_value)
+
+        try:
+            expr = z3_op(left_expr, op_value)
+            return expr
+        except Exception as e:
+            try:
+                z3_op = z3tools.get_z3_bkup_op_type(op_type)
+                expr = z3_op(left_expr, op_value)
+                return expr
+            except Exception as e2:
+                try:
+                    z3_op = z3tools.get_z3_str_op_type(op_type)
+                    z3_val = z3tools.get_z3_str_value(op_value)
+                    expr = z3_op(left_expr, z3_val)
+                    return expr
+                except Exception as e3:
+                    print(e)
+                    print(e2)
+                    print(e3)
 
     '''
     GET EXPRESSION VALUE
@@ -550,8 +595,15 @@ class FunctionParser():
                     z3_op = z3tools.get_z3_bkup_op_type(op_type)
                     return z3_op(left, right)
                 except Exception as e2:
-                    print(e)
-                    print(e2)
+                    try:
+                        z3_op = z3tools.get_z3_str_op_type(op_type)
+                        expr = z3_op(z3tools.get_z3_str_value(
+                            left), z3tools.get_z3_str_value(right))
+                        return expr
+                    except Exception as e3:
+                        print(e)
+                        print(e2)
+                        print(e3)
 
         if 'op' in expr:
             operand = self.get_expr_value(expr['operand'])
@@ -564,7 +616,7 @@ class FunctionParser():
     '''
 
     def store_constraint(self, expr):
-        for i in range(0, 100):
+        for i in range(0, 1000):
             if i in self.constraints:
                 continue
             self.constraints[i] = expr

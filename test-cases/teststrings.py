@@ -1,5 +1,7 @@
 def test1(a: str, b: int):
 
+    c: str = "test string"
+
     if a == 'GET':
         if b > 0:
             return 1

@@ -69,3 +69,15 @@ def test_func8(a: bool, b: bool = True) -> int:
             return 1
         else:
             return 2
+
+
+def test_func9(a: bool, b: bool):
+    if a:
+        return 1
+    else:
+        print("not a")
+
+    if b:
+        return 2
+    else:
+        print("not b")
