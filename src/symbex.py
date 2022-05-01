@@ -137,12 +137,74 @@ class FileParser():
             func.debug()
 
     '''
+    PRINT AST
     '''
 
     def print_ast(self):
         print(json.dumps(self.json_tree, indent=4))
 
     '''
+    PARSE
+    '''
+
+    def parse(self):
+
+        for body in self.json_tree['body']:
+
+            # Current Implementation Only interested in pure function analysis
+            if body["_type"] != "FunctionDef":
+                continue
+
+            # get function anme from AST
+            func_name = body['name']
+
+            parse_func: FunctionParser = FunctionParser(func_name, body)
+            parse_func.parse()
+            self.functions.append(parse_func)
+
+
+"""
+
+Module Parser, similiar to FileParser but accepts a String representation
+of full python module/source file.
+
+"""
+
+
+class ModuleParser():
+
+    def __init__(self, payload: str):
+        try:
+            self.ast_tree = ast.parse(payload)
+            self.json_tree = ast2json(self.ast_tree)
+            self.functions: list = []
+        except Exception as ex:
+            print(ex)
+            exit(1)
+
+    '''
+    PRINT RESULTS
+    '''
+
+    def results(self):
+        return '\n\n'.join([f.result_string() for f in self.functions])
+
+    '''
+    PRINT AST
+    '''
+
+    def print_ast(self):
+        print(json.dumps(self.json_tree, indent=4))
+
+    '''
+    GET AST as string
+    '''
+
+    def get_ast(self):
+        return json.dumps(self.json_tree, indent=4)
+
+    '''
+    PARSE
     '''
 
     def parse(self):
@@ -162,7 +224,9 @@ class FileParser():
 
 
 '''
+CEViolation
 
+stores information on unreachable code blocks
 '''
 
 
@@ -175,9 +239,15 @@ class CEViolation():
     def print(self):
         print(f"Unsatisfied: - line {self.lineno} ({get_expr(self.expr)})")
 
+    def get_err(self):
+        return f"Unsatisfied: - line {self.lineno} ({get_expr(self.expr)})"
+
 
 '''
 
+TestCase
+
+Filters Path execution variables against input variables
 '''
 
 
@@ -282,6 +352,29 @@ class FunctionParser():
         # self.print_ast()
         # print(f"body: {self.body}")
         # print(f"expr: {self.expr}")
+
+    '''
+    RESULT STRING
+    '''
+
+    def result_string(self):
+        s: str = ""
+        s += f"\n"
+        s += f"\nfunction: {self.name}"
+        s += f"\nargs: {self.args}"
+        s += f"\n"
+        s += f"\nTest Cases: "
+        s += f"\n"
+
+        distinct_cases = set([test.get_printline() for test in self.tests])
+        for test in distinct_cases:
+            s += "\n"+str(test)
+        s += "\n"
+        s += f"\nErrors/Issues: "
+
+        for err in self.errors:
+            s += f"\n{err.get_err()}"
+        return s
 
     '''
     PRINT AST

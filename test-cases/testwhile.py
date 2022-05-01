@@ -4,11 +4,13 @@
 def test_func1(a: int = 0):
 
     while a < 100:
-
         if a == 10:
             return 1
         if a > 50:
             return 2
+
+        if a == 100:
+            return 3
 
 
 def test_func2(a: bool = True, b: int = 0) -> int:
